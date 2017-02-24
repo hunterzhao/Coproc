@@ -3,16 +3,14 @@
 
 #include <iostream>
 #include <ucontext.h>
-
+#include "common.h"
 class Coproc {
 public:
 	static void pass(void* param);
 
 	Coproc(int fd, int stack_size =  64 * 1024);
 
-	~Coproc() {
-
-	}
+	~Coproc();
 	//协程状态
 	enum Status{
        READY,
@@ -42,10 +40,10 @@ public:
     
     void Resume();
 
-    void Stop() {
-        st_ = STOP;
-    }
+    void Stop();
     
+    void Delete();
+
     void Reset() {
 
     }
@@ -60,5 +58,5 @@ private:
      //协程当前的状态
     Status st_;
 };
-
+DEFINE_SHARED_PTR(Coproc);
 #endif

@@ -11,10 +11,11 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <ucontext.h>
-#include "Coproc.h"
-
+#include "common.h"
 #define MAX_EVENTS 10
 
+class Coproc;
+DEFINE_SHARED_PTR(Coproc);
 class Scheduler {
 public:    
     //返回单例
@@ -23,11 +24,15 @@ public:
     	return &sche;
     }
     
-    void PushCoproc(int fd, uint32_t event, Coproc* co);
-
-    Coproc* FindCoproc(int fd, uint32_t event);
+    void PushCoproc(int fd, uint32_t event, CoprocPtr co);
     
-    Coproc* GetCurrent();
+    void DeleteCoproc(int fd);
+
+    void DeleteCoproc(int fd, uint32_t event);
+
+    CoprocPtr FindCoproc(int fd, uint32_t event);
+    
+    CoprocPtr GetCurrent();
     
     ucontext* GetMainCtx();
 
@@ -45,9 +50,9 @@ private:
 	Scheduler& operator=(const Scheduler& cur);
 
 	//协程库
-	std::map<int, std::vector<std::pair<uint32_t, Coproc*> > > coBuckets_;
+	std::map<int, std::vector<std::pair<uint32_t, CoprocPtr> > > coBuckets_;
 	ucontext mainCtx_;
-    Coproc* run_;
+    CoprocPtr run_;
 
     int epollfd_;
     struct epoll_event events_[MAX_EVENTS];

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <memory>
 #include <memory.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -40,7 +41,7 @@ public:
             std::cout<<"read: "<<line<<std::endl;
             Yield();
         }
-        Stop();
+        Delete();//从调度器删除该协程，并且回到总调度器
     }
 };
 
@@ -52,9 +53,10 @@ public:
         for(;;) {
           std::cout<<"connection coming!"<<std::endl;
           int connfd = accept(fd_, NULL, NULL);
-          set_nonblock(connfd);  
-          Scheduler::getInstance()->PushCoproc(connfd, EPOLLIN, new AcceptCo(connfd)); //每一个连接开一个协程
-          Yield(); //新连接到来，要让出主线程，不然要等到下个连接到了才会让
+          set_nonblock(connfd); 
+          CoprocPtr acceptor(new AcceptCo(connfd));
+          Scheduler::getInstance()->PushCoproc(connfd, EPOLLIN, acceptor); //每一个连接开一个协程
+          Yield(); //wait the request been process
         }
     }
 };
@@ -74,7 +76,7 @@ int main(void)
     
     listen(listenfd, 10);
 
-    ServerCo* server = new ServerCo(listenfd);
+    std::shared_ptr<ServerCo> server(new ServerCo(listenfd));
     //该描述符, 事件就绪时,执行后面的协程
     Scheduler::getInstance()->PushCoproc(listenfd, EPOLLIN, server);
     Scheduler::getInstance()->Poll();

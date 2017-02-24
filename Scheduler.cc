@@ -1,7 +1,7 @@
 
 #include "Scheduler.h"
-
-void Scheduler::PushCoproc(int fd, uint32_t event, Coproc* co) {
+#include "Coproc.h"
+void Scheduler::PushCoproc(int fd, uint32_t event, CoprocPtr co) {
     if(coBuckets_.find(fd) == coBuckets_.end())
     	coBuckets_[fd].push_back(std::make_pair(event, co));
     else
@@ -16,7 +16,33 @@ void Scheduler::PushCoproc(int fd, uint32_t event, Coproc* co) {
     }
 }
 
-Coproc* Scheduler::FindCoproc(int fd, uint32_t event) {
+void Scheduler::DeleteCoproc(int fd, uint32_t event) {
+    auto it = coBuckets_.find(fd);
+    if(it == coBuckets_.end())
+        std::cout<<"no such fd"<<std::endl;
+    
+    coBuckets_.erase(it);
+    //     coBuckets_[fd].push_back(std::make_pair(event, co));
+
+    // struct epoll_event ev;
+    // ev.events = event;
+    // ev.data.fd = fd;
+    // if(epoll_ctl(epollfd_, EPOLL_CTL_DEL, fd, &ev) == -1) {
+    //     perror("epoll_ctl: error");
+    //     exit(EXIT_FAILURE);
+    // }
+}
+
+void Scheduler::DeleteCoproc(int fd) {
+    auto it = coBuckets_.find(fd);
+    if(it == coBuckets_.end()) {
+        std::cout<<"no such fd"<<std::endl;
+        return;
+    }
+    coBuckets_.erase(it);
+}
+
+CoprocPtr Scheduler::FindCoproc(int fd, uint32_t event) {
 	if(coBuckets_.find(fd) != coBuckets_.end()) {
 		 auto container = coBuckets_[fd];
          for(auto data : container) 
@@ -28,7 +54,7 @@ Coproc* Scheduler::FindCoproc(int fd, uint32_t event) {
     return NULL;
 }
 
-Coproc* Scheduler::GetCurrent() {
+CoprocPtr Scheduler::GetCurrent() {
 	return run_;
 }
 
@@ -41,7 +67,6 @@ void Scheduler::Poll() {
     for(;;) {
         int nfds = epoll_wait(epollfd_, events_, MAX_EVENTS, -1);
         if(nfds == -1) {
-            perror("epoll_Wait");
             exit(EXIT_FAILURE);
         }
 
@@ -78,4 +103,5 @@ void Scheduler::Poll() {
             // }     
         }
     }
+    std::cout<< "here over" <<std::endl;
 }
